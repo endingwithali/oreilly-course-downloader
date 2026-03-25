@@ -2,19 +2,20 @@
 
 A powerful Python tool to download **complete O'Reilly Learning courses** with videos and transcripts, automatically organized by chapters.
 
-> **Note**: This tool is designed specifically for downloading complete video course.
+> **Note**: This tool is designed specifically for downloading complete video courses. For ON24-hosted live events, see the special instructions below.
 
 ## Features ✨
 
 - **📚 Complete Course Downloads**: Download entire courses with all modules and lessons
 - **🎥 Video Downloads**: High-quality video downloads via HLS/m3u8 streams
 - **📝 Transcript Extraction**: Extract video transcripts with timestamps
-- **� Smart Organization**: Automatically organize by Module → Lesson → Videos
+- **📁 Smart Organization**: Automatically organize by Module → Lesson → Videos
 - **🔄 Resume Support**: Continue interrupted downloads
 - **🚀 Headless Mode**: Run without browser window
 - **⚡ Transcript-Only Mode**: Download just transcripts (10x faster, 1000x less storage)
 - **💾 Persistent Login**: Chrome profile saves login permanently
 - **🎯 Progress Tracking**: Visual feedback with animated spinner
+- **🎬 ON24 Live Event Support**: Extract transcripts from ON24-hosted live training videos
 
 ## Quick Start 🚀
 
@@ -22,14 +23,14 @@ A powerful Python tool to download **complete O'Reilly Learning courses** with v
 
 ```bash
 # Install dependencies
-pip install selenium
+pip install selenium requests
 
 # Install FFmpeg (for video download)
 choco install ffmpeg  # Windows
 # or brew install ffmpeg  # macOS
 ```
 
-### Usage
+### Usage for Regular Courses
 
 #### One Simple Command to Download Complete Course
 
@@ -112,8 +113,28 @@ python oreilly_course_downloader.py \
 - 🔍 Easy to search and analyze
 - 🤖 AI-friendly text format
 
-## Configuration ⚙️
+## ON24 Live Event Transcripts 🎬
 
+O'Reilly live training videos are often hosted on ON24 platform and cannot be downloaded directly. However, you can extract transcripts:
+
+### Step 1: Find VTT Subtitle URL
+
+1. Open the ON24 video page in your browser
+2. Press **F12** to open DevTools → **Console** tab
+3. Copy and paste the script from `find_on24_vtt.js`
+4. Press **Enter** - it will show the VTT file URL
+
+### Step 2: Download Transcript
+
+```bash
+# Edit download_vtt_transcript.py and update the VTT_URL variable
+# Then run:
+python download_vtt_transcript.py
+```
+
+The transcript will be saved to `downloads/[Event_Name]/full_transcript.txt` with timestamps.
+
+## Configuration ⚙️
 
 ### Reset Login
 
@@ -161,6 +182,7 @@ sudo apt install ffmpeg
 
 - Python 3.7+
 - Selenium 4.15.0+
+- Requests library
 - FFmpeg (for video downloads)
 - Chrome/Chromium browser
 - Active O'Reilly Learning account
