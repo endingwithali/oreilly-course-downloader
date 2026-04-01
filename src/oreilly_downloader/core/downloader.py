@@ -11,7 +11,9 @@ class DownloaderService:
             
     def _download_video(self, m3u8_url: str, output_path: str):
         ffmpeg_cmd = [
-            "ffmpeg", "-y", "-i", m3u8_url, "-c", "copy",
+            "ffmpeg", "-y", 
+            "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+            "-i", m3u8_url, "-c", "copy",
             "-bsf:a", "aac_adtstoasc", output_path
         ]
         

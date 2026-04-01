@@ -102,6 +102,16 @@ def process_course(
         print(f"✅ Found {len(course.modules)} modules")
 
         course_dir_name = SanityUtils.sanitize_filename(course.title)
+        course_dir_path = os.path.join(downloader.output_dir, course_dir_name)
+        os.makedirs(course_dir_path, exist_ok=True)
+        import json
+
+        with open(
+            os.path.join(course_dir_path, "course_structure.json"),
+            "w",
+            encoding="utf-8",
+        ) as f:
+            json.dump(course.structure, f, indent=2)
 
         # 3. Process each video in structure
         for mod_idx, module in enumerate(course.modules, 1):
@@ -144,15 +154,16 @@ def process_course(
                         if video.url not in driver.current_url:
                             print(f"  🚀 Loading video page: {video.url}")
                             driver.get(video.url)
+                            # Let the browser process the video page load completely
                             import time
 
-                            time.sleep(
-                                2
-                            )  # Reduced from 5s to 2s to make it much faster
+                            time.sleep(3)
 
                         video.transcript = extractor.extract_transcript()
                         if video.transcript:
-                            print(f"   ✅ Transcript extracted.")
+                            os.makedirs(os.path.dirname(txt_file), exist_ok=True)
+                            downloader.save_transcript(video.transcript, txt_file)
+                            print(f"   ✅ Transcript extracted and saved in real-time.")
                         else:
                             print(f"   ❌ No transcript available for {video.title}")
                     else:
@@ -161,10 +172,18 @@ def process_course(
                         if m3u8:
                             video.m3u8_url = m3u8
                             video.transcript = extractor.extract_transcript()
-                            print(f"   ✅ Playlist found.")
+
+                            os.makedirs(os.path.dirname(vid_file), exist_ok=True)
+
+                            if video.transcript:
+                                downloader.save_transcript(video.transcript, txt_file)
+
+                            print(
+                                f"   ✅ Playlist and transcript found. Starting video download in real-time..."
+                            )
+                            downloader._download_video(m3u8, vid_file)
                         else:
                             print(f"   ❌ No m3u8 found for {video.title}")
-        downloader.download_course(course, transcripts_only=transcripts_only)
 
     finally:
         bm.stop()

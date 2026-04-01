@@ -9,6 +9,7 @@ __pycache__/
 chrome_profile/
 browser_profile/
 browser_profile_stealth/
+firefox_profile/
 
 
 # Downloaded Content

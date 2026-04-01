@@ -1,199 +1,141 @@
 # O'Reilly Video Course Downloader 🎓
 
-A powerful Python tool to download **complete O'Reilly Learning courses** with videos and transcripts, automatically organized by chapters.
+A powerful, high-performance Python CLI tool to download **complete O'Reilly Learning courses** with their videos and transcripts, automatically organizing them by chapters. 
 
-> **Note**: This tool is designed specifically for downloading complete video course.
+> **Important Architecture Update:** This project has been entirely rewritten into a modern Python package managed by **[`uv`](https://docs.astral.sh/uv/)**. It's now faster, perfectly cleanly containerized, and much easier to install on any OS.
 
-## Features ✨
+## ✨ Features
 
-- **📚 Complete Course Downloads**: Download entire courses with all modules and lessons
-- **🎥 Video Downloads**: High-quality video downloads via HLS/m3u8 streams
-- **📝 Transcript Extraction**: Extract video transcripts with timestamps
-- **� Smart Organization**: Automatically organize by Module → Lesson → Videos
-- **🔄 Resume Support**: Continue interrupted downloads
-- **🚀 Headless Mode**: Run without browser window
-- **⚡ Transcript-Only Mode**: Download just transcripts (10x faster, 1000x less storage)
-- **💾 Persistent Login**: Chrome profile saves login permanently
-- **🎯 Progress Tracking**: Visual feedback with animated spinner
-
-## Quick Start 🚀
-
-### Installation
-
-```bash
-# Install dependencies
-pip install selenium
-
-# Install FFmpeg (for video download)
-choco install ffmpeg  # Windows
-# or brew install ffmpeg  # macOS
-```
-
-### Usage
-
-#### One Simple Command to Download Complete Course
-
-```bash
-# Download complete course (videos + transcripts)
-python oreilly_course_downloader.py \
-  --url "https://learning.oreilly.com/course/aws-certified-cloud/9780138314934/" \
-  --email "your@email.com" \
-  --password "yourpassword"
-
-# Transcripts only (10x faster, 1000x less storage)
-python oreilly_course_downloader.py \
-  --url "https://learning.oreilly.com/course/aws-certified-cloud/9780138314934/" \
-  --email "your@email.com" \
-  --password "yourpassword" \
-  --transcript-only
-
-# Custom course name
-python oreilly_course_downloader.py \
-  --url "COURSE_URL" \
-  --name "My Course Name" \
-  --email "your@email.com" \
-  --password "yourpassword"
-```
-
-> **Note**: Course structure extraction happens automatically in the background. No manual steps needed!
-
-## Project Structure 📁
-
-```
-oreilly-downloader/
-├── oreilly_base_downloader.py          # Base class with core functionality
-├── oreilly_course_downloader.py        # Main course downloader (USE THIS)
-├── README.md                           # This file
-├── requirements.txt                    # Python dependencies
-├── chrome_profile/                     # Persistent Chrome profile
-├── downloads/                          # Downloaded content
-│   └── Course Name/
-│       ├── 01 - Module 1/
-│       │   └── 01 - Lesson 1/
-│       │       ├── video1.mp4
-│       │       └── video1_transcript.txt
-└── *.json                              # Course structure files
-```
-
-
-**Benefits of Transcript-Only:**
-- ⚡ 10x faster download
-- 💾 1000x less storage
-- 🔍 Easy to search and analyze
-- 🤖 AI-friendly text format
-
-### Custom Course Name
-
-```bash
-# Specify custom folder name
-python oreilly_course_downloader.py \
-  --url "https://learning.oreilly.com/course/python-fundamentals/9780138312817/" \
-  --name "Python Fundamentals 2024" \
-  --email "your@email.com" \
-  --password "yourpassword"
-```
-
-### Show Browser Window (Debugging)
-
-```bash
-# Run with visible browser (useful for debugging)
-python oreilly_course_downloader.py \
-  --url "COURSE_URL" \
-  --email "your@email.com" \
-  --password "yourpassword" \
-  --no-headless
-```
-
-> **Note**: By default, browser runs in headless mode (no window). Use `--no-headless` to see the browser.
-
-**Benefits of Transcript-Only:**
-- ⚡ 10x faster download
-- 💾 1000x less storage
-- 🔍 Easy to search and analyze
-- 🤖 AI-friendly text format
-
-## Configuration ⚙️
-
-
-### Reset Login
-
-```bash
-python oreilly_course_downloader.py --reset-profile
-```
-
-
-
-## Troubleshooting 🔧
-
-### Chrome Profile Issues
-```bash
-# Reset Chrome profile to force re-login
-python oreilly_course_downloader.py --reset-profile
-```
-
-### FFmpeg Not Found
-```bash
-# Windows
-choco install ffmpeg
-
-# macOS
-brew install ffmpeg
-
-# Linux
-sudo apt install ffmpeg
-```
-
-### Login Issues
-- Make sure credentials are correct
-- Try resetting Chrome profile
-- Check if O'Reilly account is active
-
-## Performance 📊
-
-| Operation | Normal Mode | Transcript-Only | Speedup |
-|-----------|-------------|-----------------|---------|
-| Single Video | ~30 seconds | ~3 seconds | **10x** |
-| 100 Videos | ~50 minutes | ~5 minutes | **10x** |
-| Storage | ~1-5 GB | ~1-5 MB | **1000x** |
-
-
-## Requirements 📋
-
-- Python 3.7+
-- Selenium 4.15.0+
-- FFmpeg (for video downloads)
-- Chrome/Chromium browser
-- Active O'Reilly Learning account
-
-
-
-## Contributing 🤝
-
-Contributions are welcome! Feel free to:
-- Report bugs via GitHub Issues
-- Suggest features
-- Submit pull requests
-- Improve documentation
-
-## Disclaimer ⚠️
-
-This tool is for **educational purposes and personal use only**. Users are responsible for complying with O'Reilly Media's Terms of Service. Please respect copyright and intellectual property rights.
-
-## License 📄
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## Credits 👏
-
-Built with ❤️ for efficient learning and offline access.
-
-**Technologies Used:**
-- Python 3.7+
-- Selenium WebDriver
-- Chrome DevTools Protocol
-- FFmpeg
+- **📚 Complete Course Downloads**: Extract entire courses with all modules and lessons hierarchically intact.
+- **🎥 Video Downloads**: High-quality video downloads via HLS/m3u8 raw streams using `ffmpeg`.
+- **📝 Native Transcripts**: Extracts actual text-based video transcripts perfectly formatted with timestamps.
+- **⚡ Transcripts-Only Mode**: Bypass video downloads entirely. Skips video streams and extracts just the text (~10x faster, zero storage weight).
+- **🗂️ Smart Organization**: Automatically structures output folders by `Module -> Lesson -> Videos`.
+- **🔐 Captcha-Resistant "Manual Login"**: Keep getting blocked? Pop open a Stealth browser, log in yourself manually once, and let the scraper use your saved session forever.
+- **💾 Persistent Profiles**: Saves your authenticated sessions seamlessly in the background.
 
 ---
 
-**⭐ If you find this useful, please star the repo!**
+## 🚀 Quick Start
+
+### 1. Requirements
+
+1. **[`uv`](https://docs.astral.sh/uv/getting-started/installation/)**: The insanely fast Python package manager.
+2. **`ffmpeg`**: Required to stitch together the video streams.
+
+**Install `uv` (Official Standalone Installer):**
+```bash
+# macOS and Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+**Install `ffmpeg`:**
+```bash
+# Windows
+choco install ffmpeg   
+
+# macOS
+brew install ffmpeg  
+
+# Linux
+sudo apt install ffmpeg 
+```
+
+---
+
+### 2. Usage
+
+Because the project is managed by `uv`, you don't need to manually create virtual environments or install `requirements.txt`. Simply clone the project and run the CLI directly:
+
+#### Option A: One-Shot Download (If you don't have captchas)
+```bash
+uv run oreilly-dl "https://learning.oreilly.com/course/your-course-url/12345/" \
+  --email "your_email@domain.com" \
+  --password "your_password"
+```
+
+#### Option B: Transcripts Only (Lightning Fast)
+Don't want gigabytes of video? Just grab the text files:
+```bash
+uv run oreilly-dl "https://learning.oreilly.com/course/your-course-url/12345/" \
+  --email "your_email@domain.com" \
+  --password "your_password" \
+  --transcripts-only
+```
+
+#### Option C: Manual Login (Bypass Captchas 🛡️)
+If O'Reilly blocks the automated bot login, just use `--manual-login`. It will open a visible UI, wait for you to log yourself in, save your session, and close.
+```bash
+uv run oreilly-dl --manual-login --browser stealth
+```
+*(Once done, you can run the download commands **without** passing `--email` or `--password`—it will just use your saved session!)*
+
+---
+
+## ⚙️ Advanced Flags & Configuration
+
+Run `uv run oreilly-dl --help` at any time to see all options:
+
+```text
+usage: oreilly-dl [-h] [--email EMAIL] [--password PASSWORD] [--transcripts-only]
+                  [--manual-login] [--no-headless] [--browser {firefox,chrome,stealth}]
+                  [url]
+
+positional arguments:
+  url                   URL of the course to download (optional if using --manual-login)
+
+options:
+  --transcripts-only    Only download text transcripts. Skip video `m3u8` downloading.
+  --manual-login        Launch an interactive browser to log in and save profile, then exit.
+  --no-headless         Run browser in a visible window (great for debugging).
+  --browser {firefox,chrome,stealth}
+                        Set the browser engine (default: firefox). `stealth` is recommended for heavy anti-bot evasion.
+```
+
+---
+
+## 📁 Output Structure
+
+The downloader automatically builds a pristine folder hierarchy matching O'Reilly's exact curriculum:
+
+```text
+oreilly-downloader/
+├── downloads/
+│   └── AWS Certified Solutions Architect/
+│       ├── course_structure.json
+│       ├── 01 - Cloud Concepts/
+│       │   └── 01 - What is Cloud Computing/
+│       │       ├── 01 - Video Intro.mp4
+│       │       └── 01 - Video Intro_transcript.txt
+│       └── ...
+```
+
+---
+
+## 🔧 Troubleshooting
+
+**"Authentication Failed" or stuck on Captcha?**
+Use `--manual-login` to authenticate yourself safely in a real window:
+```bash
+uv run oreilly-dl --manual-login --browser stealth
+```
+
+**"ImportError: No module named 'distutils'" on Windows?**
+This is resolved natively due to our `uv` setup, but if you bypassed it, make sure standard `setuptools` is in your environment (handled automatically by `uv sync`).
+
+**Video downloads are failing?**
+Verify `ffmpeg` is genuinely installed and available in your global system `$PATH`. `ffmpeg -version` should return its version details in your terminal.
+
+---
+
+## ⚠️ Disclaimer
+
+This tool is strictly for **educational purposes and personal offline archiving**. Users are responsible for complying with O'Reilly Media's Terms of Service. Please respect copyright and intellectual property rights.
+
+## 📄 License
+
+MIT License - see the `LICENSE` file for details.
 
