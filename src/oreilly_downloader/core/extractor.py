@@ -96,13 +96,19 @@ class ExtractorService:
 
     def extract_m3u8_url(self, video_url: str, timeout: int = 45) -> Optional[str]:
         try:
-            if video_url not in self.driver.current_url:
-                print(Fore.MAGENTA + f"  🚀 Loading video page: {video_url}")
-                self.driver.get(video_url)
-                # Explicit Wait instead of time.sleep(5)
-                WebDriverWait(self.driver, 15).until(
-                    EC.presence_of_element_located((By.TAG_NAME, "body"))
-                )
+            print(f"{Fore.MAGENTA}  🚀 Loading video page: {video_url}")
+            
+            # Clear performance entries before navigating
+            try:
+                self.driver.execute_script("performance.clearResourceTimings();")
+            except:
+                pass
+                
+            self.driver.get(video_url)
+            # Explicit Wait instead of time.sleep(5)
+            WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located((By.TAG_NAME, "body"))
+            )
 
             script = """
             return window.performance.getEntriesByType("resource")
@@ -133,7 +139,10 @@ class ExtractorService:
                     return url_list[0]
                 time.sleep(2)  # This is a short polling delay, completely fine
             return None
-        except Exception:
+        except Exception as e:
+            print(f"{Fore.RED}  ❌ Exception in extract_m3u8_url: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     def extract_course_structure(self, course_url: str):

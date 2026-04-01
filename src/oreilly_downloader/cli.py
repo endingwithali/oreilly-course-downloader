@@ -122,9 +122,9 @@ def _process_single_video(
     )
 
     if transcripts_only:
-        if video.url not in driver.current_url:
-            driver.get(video.url)
-            time.sleep(3)
+        print(f"{Fore.MAGENTA}  🚀 Loading transcript page: {video.url}")
+        driver.get(video.url)
+        time.sleep(3)
 
         video.transcript = extractor.extract_transcript()
         if video.transcript:
