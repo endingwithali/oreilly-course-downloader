@@ -6,6 +6,20 @@ import concurrent.futures
 from typing import Optional
 
 from colorama import init, Fore
+from tqdm import tqdm
+import builtins
+import sys
+
+# Route all print statements through tqdm to prevent progress-bar visual corruption
+_original_print = builtins.print
+
+
+def _tqdm_print(*args, sep=" ", end="\n", file=None, flush=False):
+    text = sep.join(str(a) for a in args)
+    tqdm.write(text, file=file or sys.stdout, end=end)
+
+
+builtins.print = _tqdm_print
 
 init(autoreset=True)
 

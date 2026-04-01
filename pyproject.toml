@@ -12,6 +12,7 @@ dependencies = [
     "requests>=2.33.1",
     "selenium>=4.41.0",
     "setuptools>=82.0.1",
+    "tqdm>=4.67.3",
     "undetected-chromedriver>=3.5.5",
     "webdriver-manager>=4.0.2",
 ]

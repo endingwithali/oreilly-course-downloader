@@ -97,13 +97,13 @@ class ExtractorService:
     def extract_m3u8_url(self, video_url: str, timeout: int = 45) -> Optional[str]:
         try:
             print(f"{Fore.MAGENTA}  🚀 Loading video page: {video_url}")
-            
+
             # Clear performance entries before navigating
             try:
                 self.driver.execute_script("performance.clearResourceTimings();")
             except:
                 pass
-                
+
             self.driver.get(video_url)
             # Explicit Wait instead of time.sleep(5)
             WebDriverWait(self.driver, 15).until(
@@ -142,6 +142,7 @@ class ExtractorService:
         except Exception as e:
             print(f"{Fore.RED}  ❌ Exception in extract_m3u8_url: {e}")
             import traceback
+
             traceback.print_exc()
             return None
 
