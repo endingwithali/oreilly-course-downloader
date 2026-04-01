@@ -103,7 +103,7 @@ class ExtractorService:
                 WebDriverWait(self.driver, 15).until(
                     EC.presence_of_element_located((By.TAG_NAME, "body"))
                 )
-                
+
             script = """
             return window.performance.getEntriesByType("resource")
                 .map(e => e.name)
@@ -131,7 +131,7 @@ class ExtractorService:
                 if urls:
                     url_list = list(urls)
                     return url_list[0]
-                time.sleep(2) # This is a short polling delay, completely fine
+                time.sleep(2)  # This is a short polling delay, completely fine
             return None
         except Exception:
             return None
@@ -144,11 +144,13 @@ class ExtractorService:
                 EC.presence_of_element_located((By.CSS_SELECTOR, "a[href*='/videos/']"))
             )
         except TimeoutException:
-            pass # We'll just continue and see if the script catches anything
+            pass  # We'll just continue and see if the script catches anything
 
         self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2) # Give a small buffer for DOM react updates to finish if lazily loaded
-        
+        time.sleep(
+            2
+        )  # Give a small buffer for DOM react updates to finish if lazily loaded
+
         script = r"""
         function cleanName(text) {
             let t = text.trim();

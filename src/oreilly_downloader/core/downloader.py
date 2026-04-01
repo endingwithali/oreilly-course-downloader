@@ -12,8 +12,10 @@ class DownloaderService:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-    def download_video(self, m3u8_url: str, output_path: str, max_retries: int = 3) -> bool:
-        """Atomic, auto-reconnecting fetch of media files via ffmpeg with Python-level retries."""        
+    def download_video(
+        self, m3u8_url: str, output_path: str, max_retries: int = 3
+    ) -> bool:
+        """Atomic, auto-reconnecting fetch of media files via ffmpeg with Python-level retries."""
         temp_output_path = output_path + ".part"
         ffmpeg_cmd = [
             "ffmpeg",
@@ -40,22 +42,34 @@ class DownloaderService:
         for attempt in range(1, max_retries + 1):
             try:
                 if attempt == 1:
-                    print(Fore.CYAN + f"⬇️ Queued & Downloading: {os.path.basename(output_path)} ....")
+                    print(
+                        Fore.CYAN
+                        + f"⬇️ Queued & Downloading: {os.path.basename(output_path)} ...."
+                    )
                 else:
-                    print(Fore.YELLOW + f"⚠️ Retrying download ({attempt}/{max_retries}): {os.path.basename(output_path)} ....")
-                    
+                    print(
+                        Fore.YELLOW
+                        + f"⚠️ Retrying download ({attempt}/{max_retries}): {os.path.basename(output_path)} ...."
+                    )
+
                 process = subprocess.Popen(
-                    ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+                    ffmpeg_cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
                 )
                 _, stderr = process.communicate()
 
                 if process.returncode == 0:
                     if os.path.exists(temp_output_path):
                         os.replace(temp_output_path, output_path)
-                    print(Fore.GREEN + f"✅ Finished Download: {os.path.basename(output_path)}")
+                    print(
+                        Fore.GREEN
+                        + f"✅ Finished Download: {os.path.basename(output_path)}"
+                    )
                     return True
-                
-                error_lines = [line for line in stderr.split('\\n') if line.strip()]
+
+                error_lines = [line for line in stderr.split("\\n") if line.strip()]
                 last_error = error_lines[-1] if error_lines else "Unknown error"
                 print(Fore.RED + f"❌ Attempt {attempt} failed: {last_error}")
 

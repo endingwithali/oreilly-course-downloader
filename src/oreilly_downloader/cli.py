@@ -32,28 +32,48 @@ def build_course(structure: dict) -> Course:
     return course
 
 
-def _handle_authentication(driver, auth: AuthService, email: Optional[str], password: Optional[str], manual_login: bool) -> bool:
+def _handle_authentication(
+    driver,
+    auth: AuthService,
+    email: Optional[str],
+    password: Optional[str],
+    manual_login: bool,
+) -> bool:
     """Handles the authentication flow either manually, via credentials, or via existing session."""
     if manual_login:
-        print(Fore.YELLOW + "\\n=======================================================")
+        print(
+            Fore.YELLOW + "\\n======================================================="
+        )
         print(Fore.YELLOW + "⚠️ MANUAL LOGIN MODE ACTIVE")
         print(Fore.YELLOW + "=======================================================")
 
         driver.get("https://learning.oreilly.com/accounts/login/")
         print(Fore.CYAN + "\\n⏳ Please log in via the newly opened browser window.")
-        input(Fore.MAGENTA + "⏳ ONCE YOU ARE SUCCESSFULLY ON THE HOMEPAGE, press ENTER here to continue...")
+        input(
+            Fore.MAGENTA
+            + "⏳ ONCE YOU ARE SUCCESSFULLY ON THE HOMEPAGE, press ENTER here to continue..."
+        )
 
         if auth.is_logged_in():
             print(Fore.GREEN + "✅ Confirmed logged in manually. Profile saved!")
         else:
             print(Fore.RED + "⚠️ Warning: Could not detect logged-in state.")
-        print(Fore.GREEN + "✨ Manual setup complete. Please close and run the script normally to download courses.")
+        print(
+            Fore.GREEN
+            + "✨ Manual setup complete. Please close and run the script normally to download courses."
+        )
         return False
 
     if email and password:
         if not auth.login(email, password):
-            print(Fore.RED + "\\n❌ Authentication failed. (Possible CAPTCHA block or invalid credentials)")
-            print(Fore.YELLOW + "👉 Solution: Run 'uv run oreilly-dl --manual-login --browser stealth' to log in yourself safely.")
+            print(
+                Fore.RED
+                + "\\n❌ Authentication failed. (Possible CAPTCHA block or invalid credentials)"
+            )
+            print(
+                Fore.YELLOW
+                + "👉 Solution: Run 'uv run oreilly-dl --manual-login --browser stealth' to log in yourself safely."
+            )
             return False
         return True
 
@@ -61,7 +81,10 @@ def _handle_authentication(driver, auth: AuthService, email: Optional[str], pass
     time.sleep(3)
     if not auth.is_logged_in():
         print(Fore.RED + "\\n❌ Error: You are NOT logged in.")
-        print(Fore.YELLOW + "👉 Solution: pass '--email' and '--password', OR use '--manual-login'")
+        print(
+            Fore.YELLOW
+            + "👉 Solution: pass '--email' and '--password', OR use '--manual-login'"
+        )
         return False
 
     return True
@@ -79,7 +102,7 @@ def _process_single_video(
     driver,
     extractor: ExtractorService,
     downloader: DownloaderService,
-    transcripts_only: bool
+    transcripts_only: bool,
 ) -> Optional[concurrent.futures.Future]:
     """Handles extraction and immediate download of a single video. Returns Future if successfully triggered download."""
     vid_file, txt_file = PathManager.get_video_paths(
@@ -94,7 +117,10 @@ def _process_single_video(
         return None
 
     print(Fore.CYAN + f"\\n🎥 Extracting data for: {video.title}")
-    print(Fore.YELLOW + f"   📁 Saving to folder: {os.path.basename(os.path.dirname(vid_file))}")
+    print(
+        Fore.YELLOW
+        + f"   📁 Saving to folder: {os.path.basename(os.path.dirname(vid_file))}"
+    )
 
     if transcripts_only:
         if video.url not in driver.current_url:
@@ -118,14 +144,24 @@ def _process_single_video(
             if video.transcript:
                 downloader.save_transcript(video.transcript, txt_file)
 
-            print(Fore.GREEN + f"   ✅ M3U8 Fetched. Queuing {video.title} for background download...")
+            print(
+                Fore.GREEN
+                + f"   ✅ M3U8 Fetched. Queuing {video.title} for background download..."
+            )
             return executor.submit(downloader.download_video, m3u8, vid_file)
         else:
             print(Fore.RED + f"   ❌ No m3u8 found.")
             return None
 
 
-def _download_videos_concurrently(course: Course, driver, extractor: ExtractorService, downloader: DownloaderService, transcripts_only: bool, course_dir: str):
+def _download_videos_concurrently(
+    course: Course,
+    driver,
+    extractor: ExtractorService,
+    downloader: DownloaderService,
+    transcripts_only: bool,
+    course_dir: str,
+):
     """Iterates through the course structure and dispatches video processing with a bounded queue to avoid M3U8 expiration."""
 
     max_workers = 3
@@ -135,14 +171,15 @@ def _download_videos_concurrently(course: Course, driver, extractor: ExtractorSe
         for mod_idx, module in enumerate(course.modules, 1):
             for less_idx, lesson in enumerate(module.lessons, 1):
                 for vid_idx, video in enumerate(lesson.videos, 1):
-                    
+
                     # Bounding the queue: Wait if we already have max_workers active downloads
                     # This prevents scraping 50 M3U8s in advance which lets their CDN tokens expire
                     while len(active_futures) >= max_workers:
                         done, active_futures = concurrent.futures.wait(
-                            active_futures, return_when=concurrent.futures.FIRST_COMPLETED
+                            active_futures,
+                            return_when=concurrent.futures.FIRST_COMPLETED,
                         )
-                    
+
                     future = _process_single_video(
                         executor=executor,
                         video=video,
@@ -155,14 +192,17 @@ def _download_videos_concurrently(course: Course, driver, extractor: ExtractorSe
                         driver=driver,
                         extractor=extractor,
                         downloader=downloader,
-                        transcripts_only=transcripts_only
+                        transcripts_only=transcripts_only,
                     )
 
                     if future:
                         active_futures.add(future)
 
         if active_futures and not transcripts_only:
-            print(Fore.CYAN + f"\\n⏳ Waiting for remaining {len(active_futures)} downloads...")
+            print(
+                Fore.CYAN
+                + f"\\n⏳ Waiting for remaining {len(active_futures)} downloads..."
+            )
             concurrent.futures.wait(active_futures)
 
     print(Fore.GREEN + "\\n✅ All course videos processed successfully!")
@@ -180,7 +220,7 @@ def process_course(
     print(Fore.CYAN + "🚀 Initializing browser...")
     bm: IBrowser = BrowserFactory.create(browser_type=browser_type, headless=headless)
     driver = bm.start()
-    
+
     if not driver:
         print(Fore.RED + "❌ Failed to start browser")
         return
@@ -206,10 +246,14 @@ def process_course(
         course_dir = PathManager.get_course_dir(downloader.output_dir, course.title)
         os.makedirs(course_dir, exist_ok=True)
 
-        with open(os.path.join(course_dir, "course_structure.json"), "w", encoding="utf-8") as f:
+        with open(
+            os.path.join(course_dir, "course_structure.json"), "w", encoding="utf-8"
+        ) as f:
             json.dump(course.structure, f, indent=2)
 
-        _download_videos_concurrently(course, driver, extractor, downloader, transcripts_only, course_dir)
+        _download_videos_concurrently(
+            course, driver, extractor, downloader, transcripts_only, course_dir
+        )
 
     finally:
         bm.stop()
@@ -219,34 +263,52 @@ def process_course(
 def main():
     parser = argparse.ArgumentParser(description="O'Reilly Course Downloader")
     parser.add_argument("url", nargs="?", help="URL of the course")
-    parser.add_argument("--on24-vtt", help="Direct URL to an ON24 VTT subtitle file to extract a live-event transcript.")
-    parser.add_argument("--event-name", default="ON24_Live_Event", help="Name of the event to save the transcript under.")
+    parser.add_argument(
+        "--on24-vtt",
+        help="Direct URL to an ON24 VTT subtitle file to extract a live-event transcript.",
+    )
+    parser.add_argument(
+        "--event-name",
+        default="ON24_Live_Event",
+        help="Name of the event to save the transcript under.",
+    )
     parser.add_argument("--email", help="Login email")
     parser.add_argument("--password", help="Login password")
     parser.add_argument("--transcripts-only", action="store_true")
     parser.add_argument("--manual-login", action="store_true")
     parser.add_argument("--no-headless", action="store_true")
-    parser.add_argument("--browser", choices=["firefox", "chrome", "stealth"], default="firefox")
-    
+    parser.add_argument(
+        "--browser", choices=["firefox", "chrome", "stealth"], default="firefox"
+    )
+
     args = parser.parse_args()
-    
+
     if args.on24_vtt:
-        print(Fore.CYAN + f"\n[ON24 Transcript Mode] Processing Event: {args.event_name}")
+        print(
+            Fore.CYAN + f"\n[ON24 Transcript Mode] Processing Event: {args.event_name}"
+        )
         vtt_content = VttProcessor.download_vtt(args.on24_vtt)
         if vtt_content:
             captions = VttProcessor.parse_vtt(vtt_content)
             if captions:
                 transcript = VttProcessor.format_transcript(captions, args.event_name)
                 dl_svc = DownloaderService()
-                out_path = os.path.join(dl_svc.output_dir, args.event_name, "full_transcript.txt")
+                out_path = os.path.join(
+                    dl_svc.output_dir, args.event_name, "full_transcript.txt"
+                )
                 dl_svc.save_transcript(transcript, out_path)
-                print(Fore.GREEN + f"\n✨ Success! Saved standalone transcript to: {out_path}")
+                print(
+                    Fore.GREEN
+                    + f"\n✨ Success! Saved standalone transcript to: {out_path}"
+                )
         return
 
-    active_headless = False if args.manual_login else not args.no_headless      
+    active_headless = False if args.manual_login else not args.no_headless
 
     if not args.manual_login and not args.url:
-        parser.error("The course URL is required unless using --manual-login or --on24-vtt")
+        parser.error(
+            "The course URL is required unless using --manual-login or --on24-vtt"
+        )
     process_course(
         args.url,
         headless=active_headless,
@@ -260,4 +322,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
