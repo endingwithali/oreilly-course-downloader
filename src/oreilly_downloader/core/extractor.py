@@ -164,8 +164,8 @@ class ExtractorService:
         }
         const allVideoLinks = document.querySelectorAll('a[href*="/videos/"][href*="/9780"]');
         const courseStructure = {};
-        let currentModule = "Unknown Module";
-        let currentLesson = "Unknown Lesson";
+        let currentModule = "Module Content";
+        let currentLesson = "Introduction";
         allVideoLinks.forEach(link => {
             const url = link.href;
             const title = cleanName(link.textContent || "");
@@ -178,8 +178,17 @@ class ExtractorService:
                     const heading = prevElems[j].querySelector('h2, h3, h4, h5') || (prevElems[j].tagName.match(/H[2-5]/) ? prevElems[j] : null);
                     if (heading) {
                         const ht = cleanName(heading.textContent || "");        
-                        if (ht.toLowerCase().includes('module') && !moduleFound) { currentModule = ht; moduleFound = true; }
-                        else if (ht.toLowerCase().includes('lesson') && !lessonFound) { currentLesson = ht; lessonFound = true; }
+                        if (ht.toLowerCase().includes('module') && !moduleFound) { 
+                            if (currentModule !== ht) {
+                                currentModule = ht;
+                                currentLesson = "Introduction"; // Reset lesson on new module
+                            }
+                            moduleFound = true; 
+                        }
+                        else if (ht.toLowerCase().includes('lesson') && !lessonFound) { 
+                            currentLesson = ht; 
+                            lessonFound = true; 
+                        }
                     }
                 }
                 tempParent = tempParent.parentElement;

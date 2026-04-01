@@ -149,6 +149,7 @@ def process_course(
                             continue
 
                     print(f"\n🎥 Extracting data for: {video.title}")
+                    print(f"   📁 Saving to folder: {os.path.basename(os.path.dirname(vid_base_dir))}")
 
                     if transcripts_only:
                         if video.url not in driver.current_url:
