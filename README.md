@@ -152,10 +152,10 @@ O'Reilly live training videos are often hosted on the ON24 platform and cannot b
 4. Press **Enter** - it will show the VTT file URL
 
 ### Step 2: Download Transcript
-Edit `download_vtt_transcript.py` and update the `VTT_URL` variable, then run:
+Run the main `oreilly-dl` tool using the `--on24-vtt` option and provide an optional name:
 
 ```bash
-uv run python download_vtt_transcript.py
+uv run oreilly-dl --on24-vtt "https://event.on24.com/..." --event-name "My Live Event"
 ```
 
-The transcript will be saved with timestamps in the `downloads/` folder.
+The transcript will be neatly parsed, stripped of junk tags, and saved as a plain text file inside `downloads/My Live Event/full_transcript.txt`.

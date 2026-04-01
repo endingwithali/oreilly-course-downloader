@@ -14,6 +14,7 @@ from .core.extractor import ExtractorService
 from .core.downloader import DownloaderService
 from .core.models import Course, Module, Lesson, Video
 from .core.utils import PathManager
+from .core.vtt import VttProcessor
 
 
 def build_course(structure: dict) -> Course:
@@ -218,6 +219,8 @@ def process_course(
 def main():
     parser = argparse.ArgumentParser(description="O'Reilly Course Downloader")
     parser.add_argument("url", nargs="?", help="URL of the course")
+    parser.add_argument("--on24-vtt", help="Direct URL to an ON24 VTT subtitle file to extract a live-event transcript.")
+    parser.add_argument("--event-name", default="ON24_Live_Event", help="Name of the event to save the transcript under.")
     parser.add_argument("--email", help="Login email")
     parser.add_argument("--password", help="Login password")
     parser.add_argument("--transcripts-only", action="store_true")
@@ -226,11 +229,24 @@ def main():
     parser.add_argument("--browser", choices=["firefox", "chrome", "stealth"], default="firefox")
     
     args = parser.parse_args()
-    active_headless = False if args.manual_login else not args.no_headless
+    
+    if args.on24_vtt:
+        print(Fore.CYAN + f"\n[ON24 Transcript Mode] Processing Event: {args.event_name}")
+        vtt_content = VttProcessor.download_vtt(args.on24_vtt)
+        if vtt_content:
+            captions = VttProcessor.parse_vtt(vtt_content)
+            if captions:
+                transcript = VttProcessor.format_transcript(captions, args.event_name)
+                dl_svc = DownloaderService()
+                out_path = os.path.join(dl_svc.output_dir, args.event_name, "full_transcript.txt")
+                dl_svc.save_transcript(transcript, out_path)
+                print(Fore.GREEN + f"\n✨ Success! Saved standalone transcript to: {out_path}")
+        return
+
+    active_headless = False if args.manual_login else not args.no_headless      
 
     if not args.manual_login and not args.url:
-        parser.error("The course URL is required unless using --manual-login")
-
+        parser.error("The course URL is required unless using --manual-login or --on24-vtt")
     process_course(
         args.url,
         headless=active_headless,
