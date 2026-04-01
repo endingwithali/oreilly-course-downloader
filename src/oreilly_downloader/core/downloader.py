@@ -69,7 +69,7 @@ class DownloaderService:
                     )
                     return True
 
-                error_lines = [line for line in stderr.split("\\n") if line.strip()]
+                error_lines = [line for line in stderr.split("\n") if line.strip()]
                 last_error = error_lines[-1] if error_lines else "Unknown error"
                 print(Fore.RED + f"❌ Attempt {attempt} failed: {last_error}")
 

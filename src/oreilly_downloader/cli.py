@@ -6,6 +6,7 @@ import concurrent.futures
 from typing import Optional
 
 from colorama import init, Fore
+
 init(autoreset=True)
 
 from .core.browsers import BrowserFactory, IBrowser
@@ -41,14 +42,12 @@ def _handle_authentication(
 ) -> bool:
     """Handles the authentication flow either manually, via credentials, or via existing session."""
     if manual_login:
-        print(
-            Fore.YELLOW + "\\n======================================================="
-        )
+        print(Fore.YELLOW + "\n=======================================================")
         print(Fore.YELLOW + "⚠️ MANUAL LOGIN MODE ACTIVE")
         print(Fore.YELLOW + "=======================================================")
 
         driver.get("https://learning.oreilly.com/accounts/login/")
-        print(Fore.CYAN + "\\n⏳ Please log in via the newly opened browser window.")
+        print(Fore.CYAN + "\n⏳ Please log in via the newly opened browser window.")
         input(
             Fore.MAGENTA
             + "⏳ ONCE YOU ARE SUCCESSFULLY ON THE HOMEPAGE, press ENTER here to continue..."
@@ -68,7 +67,7 @@ def _handle_authentication(
         if not auth.login(email, password):
             print(
                 Fore.RED
-                + "\\n❌ Authentication failed. (Possible CAPTCHA block or invalid credentials)"
+                + "\n❌ Authentication failed. (Possible CAPTCHA block or invalid credentials)"
             )
             print(
                 Fore.YELLOW
@@ -80,7 +79,7 @@ def _handle_authentication(
     driver.get("https://learning.oreilly.com/home/")
     time.sleep(3)
     if not auth.is_logged_in():
-        print(Fore.RED + "\\n❌ Error: You are NOT logged in.")
+        print(Fore.RED + "\n❌ Error: You are NOT logged in.")
         print(
             Fore.YELLOW
             + "👉 Solution: pass '--email' and '--password', OR use '--manual-login'"
@@ -116,10 +115,10 @@ def _process_single_video(
         print(Fore.YELLOW + f"⏩ Skipping {video.title} (video downloaded)")
         return None
 
-    print(Fore.CYAN + f"\\n🎥 Extracting data for: {video.title}")
+    print(f"\n{Fore.CYAN}🎥 Extracting data for: {video.title}")
     print(
         Fore.YELLOW
-        + f"   📁 Saving to folder: {os.path.basename(os.path.dirname(vid_file))}"
+        + f"📁 Saving to folder: {os.path.basename(os.path.dirname(vid_file))}"
     )
 
     if transcripts_only:
@@ -130,9 +129,9 @@ def _process_single_video(
         video.transcript = extractor.extract_transcript()
         if video.transcript:
             downloader.save_transcript(video.transcript, txt_file)
-            print(Fore.GREEN + f"   ✅ Transcript extracted.")
+            print(Fore.GREEN + f"✅ Transcript extracted.")
         else:
-            print(Fore.RED + f"   ❌ No transcript available.")
+            print(Fore.RED + f"❌ No transcript available.")
         return None
     else:
         # Extracting the m3u8 url
@@ -146,11 +145,11 @@ def _process_single_video(
 
             print(
                 Fore.GREEN
-                + f"   ✅ M3U8 Fetched. Queuing {video.title} for background download..."
+                + f"✅ M3U8 Fetched. Queuing {video.title} for background download..."
             )
             return executor.submit(downloader.download_video, m3u8, vid_file)
         else:
-            print(Fore.RED + f"   ❌ No m3u8 found.")
+            print(Fore.RED + f"❌ No m3u8 found.")
             return None
 
 
@@ -200,12 +199,11 @@ def _download_videos_concurrently(
 
         if active_futures and not transcripts_only:
             print(
-                Fore.CYAN
-                + f"\\n⏳ Waiting for remaining {len(active_futures)} downloads..."
+                f"\n{Fore.CYAN}⏳ Waiting for remaining {len(active_futures)} downloads..."
             )
             concurrent.futures.wait(active_futures)
 
-    print(Fore.GREEN + "\\n✅ All course videos processed successfully!")
+    print(f"\n{Fore.GREEN}✅ All course videos processed successfully!")
 
 
 def process_course(
@@ -257,7 +255,7 @@ def process_course(
 
     finally:
         bm.stop()
-        print(Fore.MAGENTA + "\\n✨ Done! Cleaned up browser.")
+        print(f"\n{Fore.MAGENTA}✨ Done! Cleaned up browser.")
 
 
 def main():

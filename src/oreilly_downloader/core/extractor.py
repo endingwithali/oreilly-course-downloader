@@ -90,7 +90,7 @@ class ExtractorService:
                         lines.append(f"[{timestamp}] {text}")
                 except:
                     pass
-            return "\\n\\n".join(lines) if lines else None
+            return "\n\n".join(lines) if lines else None
         except Exception:
             return None
 
