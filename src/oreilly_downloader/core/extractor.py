@@ -1,5 +1,6 @@
 import time
 from colorama import init, Fore, Style
+
 init(autoreset=True)
 from selenium.webdriver.common.by import By
 
