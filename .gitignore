@@ -7,6 +7,9 @@ __pycache__/
 
 # Chrome Profile
 chrome_profile/
+browser_profile/
+browser_profile_stealth/
+
 
 # Downloaded Content
 downloads/

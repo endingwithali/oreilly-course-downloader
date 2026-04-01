@@ -1,0 +1,228 @@
+import argparse
+import os
+from typing import Optional
+
+from .core.browsers import BrowserFactory, IBrowser
+from .core.auth import AuthService
+from .core.extractor import ExtractorService
+from .core.downloader import DownloaderService
+from .core.models import Course, Module, Lesson, Video
+from .core.utils import SanityUtils
+
+
+def build_course(structure: dict) -> Course:
+    """Builds a Course object from the scraped structure dict."""
+    course = Course(title="OReilly Extracted Course", modules=[], structure=structure)
+    for mod_name, lessons_dict in structure.items():
+        module = Module(title=mod_name, lessons=[])
+        for lesson_name, videos_list in lessons_dict.items():
+            lesson = Lesson(title=lesson_name, videos=[])
+            for v_data in videos_list:
+                video = Video(title=v_data["title"], url=v_data["url"])
+                lesson.videos.append(video)
+            module.lessons.append(lesson)
+        course.modules.append(module)
+    return course
+
+
+def process_course(
+    course_url: str,
+    headless: bool = True,
+    browser_type: str = "firefox",
+    email: str = None,
+    password: str = None,
+    manual_login: bool = False,
+    transcripts_only: bool = False,
+):
+    print("🚀 Initializing browser...")
+    bm: IBrowser = BrowserFactory.create(browser_type=browser_type, headless=headless)
+    driver = bm.start()
+    if not driver:
+        print("❌ Failed to start browser")
+        return
+
+    try:
+        auth = AuthService(bm)
+
+        if manual_login:
+            print("\n=======================================================")
+            print("⚠️ MANUAL LOGIN MODE ACTIVE")
+            print("=======================================================")
+
+            driver.get("https://learning.oreilly.com/accounts/login/")
+            print("\n⏳ Please log in via the newly opened browser window.")
+            input(
+                "⏳ ONCE YOU ARE SUCCESSFULLY ON THE HOMEPAGE, press ENTER here to continue..."
+            )
+
+            if auth.is_logged_in():
+                print("✅ Confirmed logged in manually. Profile saved!")
+            else:
+                print("⚠️ Warning: Could not detect logged-in state.")
+            print(
+                "✨ Manual setup complete. Please close and run the script normally to download courses."
+            )
+            return
+
+        # 1. Login if credentials are provided
+        elif email and password:
+            if not auth.login(email, password):
+                print(
+                    "\n❌ Authentication failed. (Possible CAPTCHA block or invalid credentials)"
+                )
+                print(
+                    "👉 Solution: Run 'uv run oreilly-dl --manual-login --browser stealth' to log in yourself safely."
+                )
+                return
+        else:
+            # 1. Start on main site to check if already logged in via profile
+            driver.get("https://learning.oreilly.com/home/")
+            import time
+
+            time.sleep(3)  # Give it brief time to process session cookies
+            if not auth.is_logged_in():
+                print("\n❌ Error: You are NOT logged in.")
+                print("👉 Solution: Either pass '--email' and '--password',")
+                print(
+                    "   OR run 'uv run oreilly-dl --manual-login --browser stealth' to authenticate once manually."
+                )
+                return
+
+        extractor = ExtractorService(bm)
+        downloader = DownloaderService()
+
+        # 2. Extract structure
+        print("📚 Extracting course structure...")
+        structure = extractor.extract_course_structure(course_url)
+        if not structure:
+            print("❌ Failed to extract course structure.")
+            return
+
+        course = build_course(structure)
+        print(f"✅ Found {len(course.modules)} modules")
+
+        course_dir_name = SanityUtils.sanitize_filename(course.title)
+
+        # 3. Process each video in structure
+        for mod_idx, module in enumerate(course.modules, 1):
+            mod_title = SanityUtils.sanitize_filename(module.title)
+
+            for less_idx, lesson in enumerate(module.lessons, 1):
+                less_title = SanityUtils.sanitize_filename(lesson.title)
+
+                for vid_idx, video in enumerate(lesson.videos, 1):
+                    vid_title = SanityUtils.sanitize_filename(video.title)
+
+                    # Constuction matching DownloaderService
+                    vid_base_dir = os.path.join(
+                        downloader.output_dir,
+                        course_dir_name,
+                        f"{mod_idx:02d} - {mod_title}",
+                        f"{less_idx:02d} - {less_title}",
+                        f"{vid_idx:02d} - {vid_title}",
+                    )
+
+                    vid_file = f"{vid_base_dir}.mp4"
+                    txt_file = f"{vid_base_dir}_transcript.txt"
+
+                    if transcripts_only:
+                        if os.path.exists(txt_file):
+                            print(
+                                f"⏩ Skipping extraction for {video.title} (transcript already downloaded)"
+                            )
+                            continue
+                    else:
+                        if os.path.exists(vid_file):
+                            print(
+                                f"⏩ Skipping extraction for {video.title} (video already downloaded)"
+                            )
+                            continue
+
+                    print(f"\n🎥 Extracting data for: {video.title}")
+
+                    if transcripts_only:
+                        if video.url not in driver.current_url:
+                            print(f"  🚀 Loading video page: {video.url}")
+                            driver.get(video.url)
+                            import time
+
+                            time.sleep(
+                                2
+                            )  # Reduced from 5s to 2s to make it much faster
+
+                        video.transcript = extractor.extract_transcript()
+                        if video.transcript:
+                            print(f"   ✅ Transcript extracted.")
+                        else:
+                            print(f"   ❌ No transcript available for {video.title}")
+                    else:
+                        # The extractor knows to only load if it's not already on the page
+                        m3u8 = extractor.extract_m3u8_url(video.url)
+                        if m3u8:
+                            video.m3u8_url = m3u8
+                            video.transcript = extractor.extract_transcript()
+                            print(f"   ✅ Playlist found.")
+                        else:
+                            print(f"   ❌ No m3u8 found for {video.title}")
+        downloader.download_course(course, transcripts_only=transcripts_only)
+
+    finally:
+        bm.stop()
+        print("\n✨ Done! Cleaned up browser.")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="O'Reilly Course Downloader (Refactored)"
+    )
+    parser.add_argument(
+        "url",
+        nargs="?",
+        help="URL of the course to download (optional if using --manual-login)",
+    )
+    parser.add_argument("--email", help="O'Reilly login email")
+    parser.add_argument("--password", help="O'Reilly login password")
+    parser.add_argument(
+        "--transcripts-only",
+        action="store_true",
+        help="Only download transcripts (skip video downloads)",
+    )
+    parser.add_argument(
+        "--manual-login",
+        action="store_true",
+        help="Launch an interactive browser to log in and save profile, then exit.",
+    )
+    parser.add_argument(
+        "--no-headless",
+        action="store_true",
+        help="Run browser in visible mode (default True for --manual-login)",
+    )
+    parser.add_argument(
+        "--browser",
+        choices=["firefox", "chrome", "stealth"],
+        default="firefox",
+        help="Browser to use (default: firefox)",
+    )
+    args = parser.parse_args()
+
+    if args.manual_login:
+        active_headless = False
+    else:
+        active_headless = not args.no_headless
+
+    if not args.manual_login and not args.url:
+        parser.error("The course URL is required unless you are using --manual-login")
+
+    process_course(
+        args.url,
+        headless=active_headless,
+        browser_type=args.browser,
+        email=args.email,
+        password=args.password,
+        manual_login=args.manual_login,
+        transcripts_only=args.transcripts_only,
+    )
+
+
+if __name__ == "__main__":
+    main()
