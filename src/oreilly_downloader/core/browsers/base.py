@@ -1,3 +1,6 @@
 class IBrowser:
-    def start(self): pass
-    def stop(self): pass
+    def start(self) -> any:
+        pass
+
+    def stop(self) -> None:
+        pass

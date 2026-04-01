@@ -34,12 +34,12 @@ def build_course(structure: dict) -> Course:
 def _handle_authentication(driver, auth: AuthService, email: Optional[str], password: Optional[str], manual_login: bool) -> bool:
     """Handles the authentication flow either manually, via credentials, or via existing session."""
     if manual_login:
-        print(Fore.YELLOW + "\n=======================================================")
+        print(Fore.YELLOW + "\\n=======================================================")
         print(Fore.YELLOW + "⚠️ MANUAL LOGIN MODE ACTIVE")
         print(Fore.YELLOW + "=======================================================")
 
         driver.get("https://learning.oreilly.com/accounts/login/")
-        print(Fore.CYAN + "\n⏳ Please log in via the newly opened browser window.")
+        print(Fore.CYAN + "\\n⏳ Please log in via the newly opened browser window.")
         input(Fore.MAGENTA + "⏳ ONCE YOU ARE SUCCESSFULLY ON THE HOMEPAGE, press ENTER here to continue...")
 
         if auth.is_logged_in():
@@ -51,7 +51,7 @@ def _handle_authentication(driver, auth: AuthService, email: Optional[str], pass
 
     if email and password:
         if not auth.login(email, password):
-            print(Fore.RED + "\n❌ Authentication failed. (Possible CAPTCHA block or invalid credentials)")
+            print(Fore.RED + "\\n❌ Authentication failed. (Possible CAPTCHA block or invalid credentials)")
             print(Fore.YELLOW + "👉 Solution: Run 'uv run oreilly-dl --manual-login --browser stealth' to log in yourself safely.")
             return False
         return True
@@ -59,65 +59,112 @@ def _handle_authentication(driver, auth: AuthService, email: Optional[str], pass
     driver.get("https://learning.oreilly.com/home/")
     time.sleep(3)
     if not auth.is_logged_in():
-        print(Fore.RED + "\n❌ Error: You are NOT logged in.")
+        print(Fore.RED + "\\n❌ Error: You are NOT logged in.")
         print(Fore.YELLOW + "👉 Solution: pass '--email' and '--password', OR use '--manual-login'")
         return False
 
     return True
 
 
+def _process_single_video(
+    executor: concurrent.futures.ThreadPoolExecutor,
+    video: Video,
+    vid_idx: int,
+    lesson_title: str,
+    less_idx: int,
+    module_title: str,
+    mod_idx: int,
+    course_dir: str,
+    driver,
+    extractor: ExtractorService,
+    downloader: DownloaderService,
+    transcripts_only: bool
+) -> Optional[concurrent.futures.Future]:
+    """Handles extraction and immediate download of a single video. Returns Future if successfully triggered download."""
+    vid_file, txt_file = PathManager.get_video_paths(
+        course_dir, mod_idx, module_title, less_idx, lesson_title, vid_idx, video.title
+    )
+
+    if transcripts_only and os.path.exists(txt_file):
+        print(Fore.YELLOW + f"⏩ Skipping {video.title} (transcript extracted)")
+        return None
+    elif not transcripts_only and os.path.exists(vid_file):
+        print(Fore.YELLOW + f"⏩ Skipping {video.title} (video downloaded)")
+        return None
+
+    print(Fore.CYAN + f"\\n🎥 Extracting data for: {video.title}")
+    print(Fore.YELLOW + f"   📁 Saving to folder: {os.path.basename(os.path.dirname(vid_file))}")
+
+    if transcripts_only:
+        if video.url not in driver.current_url:
+            driver.get(video.url)
+            time.sleep(3)
+
+        video.transcript = extractor.extract_transcript()
+        if video.transcript:
+            downloader.save_transcript(video.transcript, txt_file)
+            print(Fore.GREEN + f"   ✅ Transcript extracted.")
+        else:
+            print(Fore.RED + f"   ❌ No transcript available.")
+        return None
+    else:
+        # Extracting the m3u8 url
+        m3u8 = extractor.extract_m3u8_url(video.url)
+        if m3u8:
+            video.m3u8_url = m3u8
+            video.transcript = extractor.extract_transcript()
+
+            if video.transcript:
+                downloader.save_transcript(video.transcript, txt_file)
+
+            print(Fore.GREEN + f"   ✅ M3U8 Fetched. Queuing {video.title} for background download...")
+            return executor.submit(downloader.download_video, m3u8, vid_file)
+        else:
+            print(Fore.RED + f"   ❌ No m3u8 found.")
+            return None
+
+
 def _download_videos_concurrently(course: Course, driver, extractor: ExtractorService, downloader: DownloaderService, transcripts_only: bool, course_dir: str):
-    """Processes modules and queues extractions (SRP violation reduced by abstracting paths and downloader logic)."""
-    download_futures = []
-    
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+    """Iterates through the course structure and dispatches video processing with a bounded queue to avoid M3U8 expiration."""
+
+    max_workers = 3
+    active_futures = set()
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         for mod_idx, module in enumerate(course.modules, 1):
             for less_idx, lesson in enumerate(module.lessons, 1):
                 for vid_idx, video in enumerate(lesson.videos, 1):
-                    vid_file, txt_file = PathManager.get_video_paths(
-                        course_dir, mod_idx, module.title, less_idx, lesson.title, vid_idx, video.title
+                    
+                    # Bounding the queue: Wait if we already have max_workers active downloads
+                    # This prevents scraping 50 M3U8s in advance which lets their CDN tokens expire
+                    while len(active_futures) >= max_workers:
+                        done, active_futures = concurrent.futures.wait(
+                            active_futures, return_when=concurrent.futures.FIRST_COMPLETED
+                        )
+                    
+                    future = _process_single_video(
+                        executor=executor,
+                        video=video,
+                        vid_idx=vid_idx,
+                        lesson_title=lesson.title,
+                        less_idx=less_idx,
+                        module_title=module.title,
+                        mod_idx=mod_idx,
+                        course_dir=course_dir,
+                        driver=driver,
+                        extractor=extractor,
+                        downloader=downloader,
+                        transcripts_only=transcripts_only
                     )
 
-                    if transcripts_only and os.path.exists(txt_file):
-                        print(Fore.YELLOW + f"⏩ Skipping {video.title} (transcript extracted)")
-                        continue
-                    elif not transcripts_only and os.path.exists(vid_file):
-                        print(Fore.YELLOW + f"⏩ Skipping {video.title} (video downloaded)")
-                        continue
+                    if future:
+                        active_futures.add(future)
 
-                    print(Fore.CYAN + f"\n🎥 Extracting data for: {video.title}")
-                    print(Fore.YELLOW + f"   📁 Saving to folder: {os.path.basename(os.path.dirname(vid_file))}")
+        if active_futures and not transcripts_only:
+            print(Fore.CYAN + f"\\n⏳ Waiting for remaining {len(active_futures)} downloads...")
+            concurrent.futures.wait(active_futures)
 
-                    if transcripts_only:
-                        if video.url not in driver.current_url:
-                            driver.get(video.url)
-                            time.sleep(3)
-
-                        video.transcript = extractor.extract_transcript()
-                        if video.transcript:
-                            downloader.save_transcript(video.transcript, txt_file)
-                            print(Fore.GREEN + f"   ✅ Transcript extracted.")
-                        else:
-                            print(Fore.RED + f"   ❌ No transcript available.")
-                    else:
-                        m3u8 = extractor.extract_m3u8_url(video.url)
-                        if m3u8:
-                            video.m3u8_url = m3u8
-                            video.transcript = extractor.extract_transcript()
-
-                            if video.transcript:
-                                downloader.save_transcript(video.transcript, txt_file)
-
-                            print(Fore.GREEN + "   ✅ Queuing video for background download...")
-                            future = executor.submit(downloader.download_video, m3u8, vid_file)
-                            download_futures.append(future)
-                        else:
-                            print(Fore.RED + f"   ❌ No m3u8 found.")
-
-        if download_futures and not transcripts_only:
-            print(Fore.CYAN + f"\n⏳ Waiting for {len(download_futures)} downloads...")
-            concurrent.futures.wait(download_futures)
-            print(Fore.GREEN + "✅ All background downloads finished!")
+    print(Fore.GREEN + "\\n✅ All course videos processed successfully!")
 
 
 def process_course(
@@ -165,7 +212,7 @@ def process_course(
 
     finally:
         bm.stop()
-        print(Fore.MAGENTA + "\n✨ Done! Cleaned up browser.")
+        print(Fore.MAGENTA + "\\n✨ Done! Cleaned up browser.")
 
 
 def main():
@@ -197,3 +244,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

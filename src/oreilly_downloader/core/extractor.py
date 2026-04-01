@@ -1,4 +1,5 @@
 import time
+from typing import Optional
 from colorama import init, Fore, Style
 
 init(autoreset=True)
@@ -14,26 +15,7 @@ class ExtractorService:
         self.browser = browser
         self.driver = browser.driver
 
-    def extract_title(self) -> str:
-        selectors = [
-            (By.ID, "videoTitle"),
-            (By.CSS_SELECTOR, "h2.MuiTypography-h2"),
-            (By.CSS_SELECTOR, "h1"),
-            (By.CSS_SELECTOR, "[data-testid='title']"),
-            (By.CSS_SELECTOR, ".chapter-title"),
-            (By.TAG_NAME, "title"),
-        ]
-        for by, sel in selectors:
-            try:
-                el = self.driver.find_element(by, sel)
-                title = el.text or el.get_attribute("textContent")
-                if title:
-                    return title.strip()
-            except:
-                pass
-        return "Unknown Video"
-
-    def extract_transcript(self):
+    def extract_transcript(self) -> Optional[str]:
         # Initial scroll to trigger lazy loading if needed
         self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
         time.sleep(1)
@@ -75,9 +57,7 @@ class ExtractorService:
                     )
                     time.sleep(0.5)
                     self.driver.execute_script("arguments[0].click();", toggle_btn)
-                    time.sleep(
-                        2
-                    )  # Give more time for the transcript box to expand/animate open
+                    # Removed hardcoded 2 seconds sleep here as WebDriverWait is right after
             except Exception:
                 pass
 
@@ -110,16 +90,20 @@ class ExtractorService:
                         lines.append(f"[{timestamp}] {text}")
                 except:
                     pass
-            return "\n\n".join(lines) if lines else None
+            return "\\n\\n".join(lines) if lines else None
         except Exception:
             return None
 
-    def extract_m3u8_url(self, video_url: str, timeout: int = 45) -> str:
+    def extract_m3u8_url(self, video_url: str, timeout: int = 45) -> Optional[str]:
         try:
             if video_url not in self.driver.current_url:
                 print(Fore.MAGENTA + f"  🚀 Loading video page: {video_url}")
                 self.driver.get(video_url)
-                time.sleep(5)
+                # Explicit Wait instead of time.sleep(5)
+                WebDriverWait(self.driver, 15).until(
+                    EC.presence_of_element_located((By.TAG_NAME, "body"))
+                )
+                
             script = """
             return window.performance.getEntriesByType("resource")
                 .map(e => e.name)
@@ -147,16 +131,24 @@ class ExtractorService:
                 if urls:
                     url_list = list(urls)
                     return url_list[0]
-                time.sleep(2)
+                time.sleep(2) # This is a short polling delay, completely fine
             return None
         except Exception:
             return None
 
     def extract_course_structure(self, course_url: str):
         self.driver.get(course_url)
-        time.sleep(5)
+        # Explicit wait instead of time.sleep(5)
+        try:
+            WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "a[href*='/videos/']"))
+            )
+        except TimeoutException:
+            pass # We'll just continue and see if the script catches anything
+
         self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(3)
+        time.sleep(2) # Give a small buffer for DOM react updates to finish if lazily loaded
+        
         script = r"""
         function cleanName(text) {
             let t = text.trim();

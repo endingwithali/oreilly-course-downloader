@@ -1,5 +1,5 @@
 import os
-import undetected_chromedriver as uc
+import undetected_chromedriver as uc  # type: ignore
 from .base import IBrowser
 
 
