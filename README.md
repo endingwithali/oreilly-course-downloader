@@ -148,8 +148,29 @@ O'Reilly live training videos are often hosted on the ON24 platform and cannot b
 ### Step 1: Find VTT Subtitle URL
 1. Open the ON24 video page in your browser
 2. Press **F12** to open DevTools -> **Console** tab
-3. Copy and paste the script from `find_on24_vtt.js`
-4. Press **Enter** - it will show the VTT file URL
+3. Copy and paste the script below to find the VTT file URL:
+```javascript
+// Browser Console Script to Find ON24 VTT Subtitle URL
+(function () {
+    console.log('🔍 Searching for VTT subtitle files...');
+    performance.getEntriesByType('resource').forEach(entry => {
+        if (entry.name.includes('.vtt') || entry.name.includes('.srt') ||       
+            entry.name.includes('caption') || entry.name.includes('subtitle')) {
+            console.log('🎯 Found:', entry.name);
+        }
+    });
+    let originalFetch = window.fetch;
+    window.fetch = function (...args) {
+        let url = args[0];
+        if (typeof url === 'string' && (url.includes('.vtt') || url.includes('.srt') || url.includes('caption'))) {
+            console.log('🎯 Subtitle URL:', url);
+        }
+        return originalFetch.apply(this, args);
+    };
+    console.log('✓ Monitoring for subtitle files... Play the video if needed.');
+})();
+```
+4. Press **Enter** - it will output the VTT file URL
 
 ### Step 2: Download Transcript
 Run the main `oreilly-dl` tool using the `--on24-vtt` option and provide an optional name:
