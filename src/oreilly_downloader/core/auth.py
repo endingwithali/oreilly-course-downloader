@@ -1,5 +1,7 @@
 import os
 import time
+from colorama import init, Fore, Style
+init(autoreset=True)
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -34,10 +36,10 @@ class AuthService:
 
     def login(self, email: str, password: str) -> bool:
         if self.is_logged_in():
-            print("✅ Already logged in using saved profile")
+            print(Fore.GREEN + "✅ Already logged in using saved profile")
             return True
 
-        print("🔐 Attempting automated login...")
+        print(Fore.YELLOW + "🔐 Attempting automated login...")
         self.driver.get("https://learning.oreilly.com/accounts/login/")
         try:
             # Step 1: Enter email
@@ -84,11 +86,11 @@ class AuthService:
 
             # Check for captchas or errors
             if self.is_logged_in():
-                print("✅ Successfully logged in!")
+                print(Fore.GREEN + "✅ Successfully logged in!")
                 return True
-            print("❌ Authentication failed or CAPTCHA blocked.")
+            print(Fore.RED + "❌ Authentication failed or CAPTCHA blocked.")
             return False
 
         except Exception as e:
-            print(f"❌ Login failed: {e}")
+            print(Fore.RED + f"❌ Login failed: {e}")
             return False

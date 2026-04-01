@@ -1,4 +1,6 @@
 import time
+from colorama import init, Fore, Style
+init(autoreset=True)
 from selenium.webdriver.common.by import By
 
 from selenium.webdriver.support.ui import WebDriverWait
@@ -114,10 +116,7 @@ class ExtractorService:
     def extract_m3u8_url(self, video_url: str, timeout: int = 45) -> str:
         try:
             if video_url not in self.driver.current_url:
-                print(f"  🚀 Loading video page: {video_url}")
-                self.driver.get(video_url)
-                time.sleep(5)
-
+                print(Fore.MAGENTA + f"  🚀 Loading video page: {video_url}")
             script = """
             return window.performance.getEntriesByType("resource")
                 .map(e => e.name)

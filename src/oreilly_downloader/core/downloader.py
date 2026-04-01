@@ -1,6 +1,8 @@
 import os
 import subprocess
 import json
+from colorama import init, Fore, Style
+init(autoreset=True)
 from .utils import SanityUtils
 
 class DownloaderService:
@@ -18,18 +20,18 @@ class DownloaderService:
         ]
         
         try:
-            print(f"Downloading {os.path.basename(output_path)} ...")
+            print(Fore.CYAN + f"Downloading {os.path.basename(output_path)} ...")
             process = subprocess.Popen(
                 ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
             )
             _, stderr = process.communicate()
             if process.returncode != 0:
-                print(f"❌ Error details: {stderr}")
+                print(Fore.RED + f"❌ Error details: {stderr}")
                 return False
-            print("✅")
+            print(Fore.GREEN + "✅")
             return True
         except Exception as e:
-            print(f"Failed to run ffmpeg: {str(e)}")
+            print(Fore.RED + f"❌ Failed to run ffmpeg: {str(e)}")
             return False
 
     def save_transcript(self, transcript: str, filepath: str):
@@ -38,7 +40,7 @@ class DownloaderService:
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(transcript)
         except Exception as e:
-            print(f"Failed to save transcript: {e}")
+            print(Fore.RED + f"❌ Failed to save transcript: {e}")
 
     def download_course(self, course, transcripts_only: bool = False):
         print(f"\n🚀 Starting download for course: {course.title}")

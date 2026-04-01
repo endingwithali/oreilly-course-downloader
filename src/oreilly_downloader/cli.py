@@ -2,6 +2,9 @@ import argparse
 import os
 from typing import Optional
 
+from colorama import init, Fore, Style
+init(autoreset=True)
+
 from .core.browsers import BrowserFactory, IBrowser
 from .core.auth import AuthService
 from .core.extractor import ExtractorService
@@ -34,33 +37,33 @@ def process_course(
     manual_login: bool = False,
     transcripts_only: bool = False,
 ):
-    print("🚀 Initializing browser...")
+    print(Fore.CYAN + "🚀 Initializing browser...")
     bm: IBrowser = BrowserFactory.create(browser_type=browser_type, headless=headless)
     driver = bm.start()
     if not driver:
-        print("❌ Failed to start browser")
+        print(Fore.RED + "❌ Failed to start browser")
         return
 
     try:
         auth = AuthService(bm)
 
         if manual_login:
-            print("\n=======================================================")
-            print("⚠️ MANUAL LOGIN MODE ACTIVE")
-            print("=======================================================")
+            print(Fore.YELLOW + "\n=======================================================")
+            print(Fore.YELLOW + "⚠️ MANUAL LOGIN MODE ACTIVE")
+            print(Fore.YELLOW + "=======================================================")
 
             driver.get("https://learning.oreilly.com/accounts/login/")
-            print("\n⏳ Please log in via the newly opened browser window.")
+            print(Fore.CYAN + "\n⏳ Please log in via the newly opened browser window.")
             input(
-                "⏳ ONCE YOU ARE SUCCESSFULLY ON THE HOMEPAGE, press ENTER here to continue..."
+                Fore.MAGENTA + "⏳ ONCE YOU ARE SUCCESSFULLY ON THE HOMEPAGE, press ENTER here to continue..."
             )
 
             if auth.is_logged_in():
-                print("✅ Confirmed logged in manually. Profile saved!")
+                print(Fore.GREEN + "✅ Confirmed logged in manually. Profile saved!")
             else:
-                print("⚠️ Warning: Could not detect logged-in state.")
+                print(Fore.RED + "⚠️ Warning: Could not detect logged-in state.")
             print(
-                "✨ Manual setup complete. Please close and run the script normally to download courses."
+                Fore.GREEN + "✨ Manual setup complete. Please close and run the script normally to download courses."
             )
             return
 
@@ -68,10 +71,10 @@ def process_course(
         elif email and password:
             if not auth.login(email, password):
                 print(
-                    "\n❌ Authentication failed. (Possible CAPTCHA block or invalid credentials)"
+                    Fore.RED + "\n❌ Authentication failed. (Possible CAPTCHA block or invalid credentials)"
                 )
                 print(
-                    "👉 Solution: Run 'uv run oreilly-dl --manual-login --browser stealth' to log in yourself safely."
+                    Fore.YELLOW + "👉 Solution: Run 'uv run oreilly-dl --manual-login --browser stealth' to log in yourself safely."
                 )
                 return
         else:
@@ -81,10 +84,10 @@ def process_course(
 
             time.sleep(3)  # Give it brief time to process session cookies
             if not auth.is_logged_in():
-                print("\n❌ Error: You are NOT logged in.")
-                print("👉 Solution: Either pass '--email' and '--password',")
+                print(Fore.RED + "\n❌ Error: You are NOT logged in.")
+                print(Fore.YELLOW + "👉 Solution: Either pass '--email' and '--password',")
                 print(
-                    "   OR run 'uv run oreilly-dl --manual-login --browser stealth' to authenticate once manually."
+                    Fore.YELLOW + "   OR run 'uv run oreilly-dl --manual-login --browser stealth' to authenticate once manually."
                 )
                 return
 
@@ -92,14 +95,14 @@ def process_course(
         downloader = DownloaderService()
 
         # 2. Extract structure
-        print("📚 Extracting course structure...")
+        print(Fore.CYAN + "📚 Extracting course structure...")
         structure = extractor.extract_course_structure(course_url)
         if not structure:
-            print("❌ Failed to extract course structure.")
+            print(Fore.RED + "❌ Failed to extract course structure.")
             return
 
         course = build_course(structure)
-        print(f"✅ Found {len(course.modules)} modules")
+        print(Fore.GREEN + f"✅ Found {len(course.modules)} modules")
 
         course_dir_name = SanityUtils.sanitize_filename(course.title)
         course_dir_path = os.path.join(downloader.output_dir, course_dir_name)
@@ -138,22 +141,22 @@ def process_course(
                     if transcripts_only:
                         if os.path.exists(txt_file):
                             print(
-                                f"⏩ Skipping extraction for {video.title} (transcript already downloaded)"
+                                Fore.YELLOW + f"⏩ Skipping extraction for {video.title} (transcript already downloaded)"
                             )
                             continue
                     else:
                         if os.path.exists(vid_file):
                             print(
-                                f"⏩ Skipping extraction for {video.title} (video already downloaded)"
+                                Fore.YELLOW + f"⏩ Skipping extraction for {video.title} (video already downloaded)"
                             )
                             continue
 
-                    print(f"\n🎥 Extracting data for: {video.title}")
-                    print(f"   📁 Saving to folder: {os.path.basename(os.path.dirname(vid_base_dir))}")
+                    print(Fore.CYAN + f"\n🎥 Extracting data for: {video.title}")
+                    print(Fore.YELLOW + f"   📁 Saving to folder: {os.path.basename(os.path.dirname(vid_base_dir))}")
 
                     if transcripts_only:
                         if video.url not in driver.current_url:
-                            print(f"  🚀 Loading video page: {video.url}")
+                            print(Fore.MAGENTA + f"  🚀 Loading video page: {video.url}")
                             driver.get(video.url)
                             # Let the browser process the video page load completely
                             import time
@@ -164,9 +167,9 @@ def process_course(
                         if video.transcript:
                             os.makedirs(os.path.dirname(txt_file), exist_ok=True)
                             downloader.save_transcript(video.transcript, txt_file)
-                            print(f"   ✅ Transcript extracted and saved in real-time.")
+                            print(Fore.GREEN + f"   ✅ Transcript extracted and saved in real-time.")
                         else:
-                            print(f"   ❌ No transcript available for {video.title}")
+                            print(Fore.RED + f"   ❌ No transcript available for {video.title}")
                     else:
                         # The extractor knows to only load if it's not already on the page
                         m3u8 = extractor.extract_m3u8_url(video.url)
@@ -180,15 +183,15 @@ def process_course(
                                 downloader.save_transcript(video.transcript, txt_file)
 
                             print(
-                                f"   ✅ Playlist and transcript found. Starting video download in real-time..."
+                                Fore.GREEN + f"   ✅ Playlist and transcript found. Starting video download in real-time..."
                             )
                             downloader._download_video(m3u8, vid_file)
                         else:
-                            print(f"   ❌ No m3u8 found for {video.title}")
+                            print(Fore.RED + f"   ❌ No m3u8 found for {video.title}")
 
     finally:
         bm.stop()
-        print("\n✨ Done! Cleaned up browser.")
+        print(Fore.MAGENTA + "\n✨ Done! Cleaned up browser.")
 
 
 def main():
