@@ -29,18 +29,18 @@ class DownloaderService:
         ]
 
         try:
-            print(Fore.CYAN + f"Downloading {os.path.basename(output_path)} ...")
+            print(Fore.CYAN + f"⬇️ Queued & Downloading: {os.path.basename(output_path)} ...")
             process = subprocess.Popen(
                 ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
             )
             _, stderr = process.communicate()
             if process.returncode != 0:
-                print(Fore.RED + f"❌ Error details: {stderr}")
+                print(Fore.RED + f"❌ Error details for {os.path.basename(output_path)}: {stderr}")
                 return False
-            print(Fore.GREEN + "✅")
+            print(Fore.GREEN + f"✅ Finished Download: {os.path.basename(output_path)}")
             return True
         except Exception as e:
-            print(Fore.RED + f"❌ Failed to run ffmpeg: {str(e)}")
+            print(Fore.RED + f"❌ Failed to run ffmpeg for {os.path.basename(output_path)}: {str(e)}")
             return False
 
     def save_transcript(self, transcript: str, filepath: str):

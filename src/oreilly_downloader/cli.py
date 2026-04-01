@@ -12,6 +12,7 @@ from .core.extractor import ExtractorService
 from .core.downloader import DownloaderService
 from .core.models import Course, Module, Lesson, Video
 from .core.utils import SanityUtils
+import concurrent.futures
 
 
 def build_course(structure: dict) -> Course:
@@ -129,12 +130,14 @@ def process_course(
         ) as f:
             json.dump(course.structure, f, indent=2)
 
-        # 3. Process each video in structure
-        for mod_idx, module in enumerate(course.modules, 1):
-            mod_title = SanityUtils.sanitize_filename(module.title)
+        # 3. Process each video in structure using multithreading for video downloads
+        download_futures = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            for mod_idx, module in enumerate(course.modules, 1):
+                mod_title = SanityUtils.sanitize_filename(module.title)
 
-            for less_idx, lesson in enumerate(module.lessons, 1):
-                less_title = SanityUtils.sanitize_filename(lesson.title)
+                for less_idx, lesson in enumerate(module.lessons, 1):
+                    less_title = SanityUtils.sanitize_filename(lesson.title)
 
                 for vid_idx, video in enumerate(lesson.videos, 1):
                     vid_title = SanityUtils.sanitize_filename(video.title)
@@ -210,11 +213,17 @@ def process_course(
 
                             print(
                                 Fore.GREEN
-                                + f"   ✅ Playlist and transcript found. Starting video download in real-time..."
+                                + f"   ✅ Playlist and transcript found. Queuing video for background download..."
                             )
-                            downloader._download_video(m3u8, vid_file)
+                            future = executor.submit(downloader._download_video, m3u8, vid_file)
+                            download_futures.append(future)
                         else:
                             print(Fore.RED + f"   ❌ No m3u8 found for {video.title}")
+
+            if download_futures and not transcripts_only:
+                print(Fore.CYAN + f"\n⏳ Waiting for {len(download_futures)} background downloads to fully complete...")
+                concurrent.futures.wait(download_futures)
+                print(Fore.GREEN + "✅ All background downloads finished!")
 
     finally:
         bm.stop()
