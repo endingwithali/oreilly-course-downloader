@@ -149,6 +149,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "colorama" },
+    { name = "requests" },
     { name = "selenium" },
     { name = "setuptools" },
     { name = "undetected-chromedriver" },
@@ -158,6 +159,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "colorama", specifier = ">=0.4.6" },
+    { name = "requests", specifier = ">=2.33.1" },
     { name = "selenium", specifier = ">=4.41.0" },
     { name = "setuptools", specifier = ">=82.0.1" },
     { name = "undetected-chromedriver", specifier = ">=3.5.5" },

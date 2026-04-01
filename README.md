@@ -139,3 +139,23 @@ This tool is strictly for **educational purposes and personal offline archiving*
 
 MIT License - see the `LICENSE` file for details.
 
+---
+
+## 🎬 ON24 Live Event Transcripts
+
+O'Reilly live training videos are often hosted on the ON24 platform and cannot be downloaded directly. However, you can extract their transcripts standalone:
+
+### Step 1: Find VTT Subtitle URL
+1. Open the ON24 video page in your browser
+2. Press **F12** to open DevTools -> **Console** tab
+3. Copy and paste the script from `find_on24_vtt.js`
+4. Press **Enter** - it will show the VTT file URL
+
+### Step 2: Download Transcript
+Edit `download_vtt_transcript.py` and update the `VTT_URL` variable, then run:
+
+```bash
+uv run python download_vtt_transcript.py
+```
+
+The transcript will be saved with timestamps in the `downloads/` folder.
