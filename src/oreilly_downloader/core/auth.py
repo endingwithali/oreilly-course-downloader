@@ -13,14 +13,14 @@ class AuthService:
         self.driver = browser.driver
 
     def is_logged_in(self) -> bool:
-        self.driver.get("https://learning.oreilly.com/home/")
-        time.sleep(3)
-
-        current_url = self.driver.current_url.lower()
-        if "login" in current_url or "register" in current_url:
-            return False
-
         try:
+            self.driver.get("https://learning.oreilly.com/home/")
+            time.sleep(3)
+
+            current_url = self.driver.current_url.lower()
+            if "login" in current_url or "register" in current_url:
+                return False
+
             # Secondary heuristic: if a sign-in button still visibly exists, not logged in
             sign_in_btns = self.driver.find_elements(
                 By.XPATH,
@@ -31,7 +31,7 @@ class AuthService:
 
             # If we stayed on /home/ and no login button is visible, we are logged in
             return True
-        except:
+        except Exception:
             return False
 
     def login(self, email: str, password: str) -> bool:

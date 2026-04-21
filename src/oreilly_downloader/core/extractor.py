@@ -168,7 +168,21 @@ class ExtractorService:
             t = t.replace(/\d+[smh](\s+\d+[sm])?(\s*remaining)?\s*$/i, '');     
             return t.trim();
         }
-        const allVideoLinks = document.querySelectorAll('a[href*="/videos/"][href*="/9780"]');
+        
+        // This regex ensures we blindly catch ANY link to an interactive element or video within OReilly URL structures, 
+        // future-proofing it against minor URL changes like format ID switches.
+        const courseRegex = /(\/videos\/|\/library\/view\/.*\/video|\/course\/.*\/(start|continue)\/)/i;
+        
+        const allVideoLinks = Array.from(document.querySelectorAll('a'))
+            .filter(link => {
+                if(!link.href) return false;
+                // Exclude obvious non-video links like the author page or table of contents
+                if(link.href.includes('/library/view/') && !link.href.includes('video')) return false;
+                if(link.href.includes('#')) return false;
+                
+                return courseRegex.test(link.href);
+            });
+            
         const courseStructure = {};
         let currentModule = "Module Content";
         let currentLesson = "Introduction";

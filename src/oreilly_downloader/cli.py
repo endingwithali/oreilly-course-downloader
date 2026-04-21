@@ -90,8 +90,6 @@ def _handle_authentication(
             return False
         return True
 
-    driver.get("https://learning.oreilly.com/home/")
-    time.sleep(3)
     if not auth.is_logged_in():
         print(Fore.RED + "\n❌ Error: You are NOT logged in.")
         print(
